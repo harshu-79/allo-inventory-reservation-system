@@ -26,6 +26,12 @@ export default function HomePage() {
   const [loading, setLoading] =
     useState(true);
 
+  const [reserving, setReserving] =
+    useState(false);
+
+  const [simulating, setSimulating] =
+    useState(false);
+
   const [activeReservation, setActiveReservation] =
     useState<any>(null);
 
@@ -49,8 +55,6 @@ export default function HomePage() {
 
     } catch (error) {
 
-      console.error(error);
-
       toast.error(
         "Failed to load inventory"
       );
@@ -61,17 +65,30 @@ export default function HomePage() {
     }
   }
 
+  // INITIAL LOAD
+
   useEffect(() => {
     fetchProducts();
   }, []);
 
-  // TIMER EFFECT
+  // AUTO REFRESH
+
+  useEffect(() => {
+
+    const interval = setInterval(() => {
+      fetchProducts();
+    }, 5000);
+
+    return () =>
+      clearInterval(interval);
+
+  }, []);
+
+  // TIMER
 
   useEffect(() => {
 
     if (!activeReservation) return;
-
-    // STOP TIMER AFTER COMPLETION
 
     if (
       activeReservation.status !==
@@ -82,7 +99,6 @@ export default function HomePage() {
         activeReservation.status ===
         "CONFIRMED"
       ) {
-
         setTimeLeft(
           "Completed ✅"
         );
@@ -92,7 +108,6 @@ export default function HomePage() {
         activeReservation.status ===
         "RELEASED"
       ) {
-
         setTimeLeft(
           "Released ❌"
         );
@@ -150,6 +165,8 @@ export default function HomePage() {
 
     try {
 
+      setReserving(true);
+
       const response = await fetch(
         "/api/reserve",
         {
@@ -171,7 +188,6 @@ export default function HomePage() {
         await response.json();
 
       if (!response.ok) {
-
         throw new Error(
           data.error
         );
@@ -180,7 +196,7 @@ export default function HomePage() {
       setActiveReservation(data);
 
       toast.success(
-        `${data.quantity} unit reserved successfully 🎉`
+        "Reservation created successfully 🎉"
       );
 
       fetchProducts();
@@ -192,6 +208,86 @@ export default function HomePage() {
           ? error.message
           : "Reservation failed"
       );
+
+    } finally {
+
+      setReserving(false);
+    }
+  }
+
+  // CONCURRENCY SIMULATION
+
+  async function handleSimulation() {
+
+    try {
+
+      const inventoryId =
+        products?.[0]?.inventories?.[0]?.id;
+
+      if (!inventoryId) {
+        toast.error(
+          "No inventory available"
+        );
+        return;
+      }
+
+      setSimulating(true);
+
+      toast.loading(
+        "Running concurrency simulation..."
+      );
+
+      const requests = Array.from({
+        length: 5,
+      }).map(() =>
+
+        fetch("/api/reserve", {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify({
+            inventoryId,
+            quantity: 1,
+          }),
+        })
+      );
+
+      const results =
+        await Promise.all(requests);
+
+      const successCount =
+        results.filter(
+          (r) => r.ok
+        ).length;
+
+      const failedCount =
+        results.filter(
+          (r) => !r.ok
+        ).length;
+
+      toast.dismiss();
+
+      toast.success(
+        `${successCount} succeeded, ${failedCount} blocked`
+      );
+
+      fetchProducts();
+
+    } catch {
+
+      toast.dismiss();
+
+      toast.error(
+        "Simulation failed"
+      );
+
+    } finally {
+
+      setSimulating(false);
     }
   }
 
@@ -212,7 +308,6 @@ export default function HomePage() {
         await response.json();
 
       if (!response.ok) {
-
         throw new Error(
           data.error
         );
@@ -221,7 +316,7 @@ export default function HomePage() {
       setActiveReservation(data);
 
       toast.success(
-        "Reservation confirmed successfully ✅"
+        "Reservation confirmed ✅"
       );
 
       fetchProducts();
@@ -253,7 +348,6 @@ export default function HomePage() {
         await response.json();
 
       if (!response.ok) {
-
         throw new Error(
           data.error
         );
@@ -262,7 +356,7 @@ export default function HomePage() {
       setActiveReservation(data);
 
       toast.success(
-        "Reservation released successfully"
+        "Reservation released"
       );
 
       fetchProducts();
@@ -277,19 +371,13 @@ export default function HomePage() {
     }
   }
 
-  // LOADING SCREEN
-
   if (loading) {
 
     return (
 
       <main className="min-h-screen bg-black text-white flex items-center justify-center">
 
-        <p className="text-lg">
-
-          Loading inventory...
-
-        </p>
+        Loading inventory...
 
       </main>
     );
@@ -303,136 +391,170 @@ export default function HomePage() {
 
         {/* HEADER */}
 
-        <div className="mb-10">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10">
 
-          <h1 className="text-5xl font-bold mb-3">
+          <div>
 
-            Inventory Reservation System
+            <h1 className="text-5xl font-bold mb-3">
 
-          </h1>
+              Inventory Reservation System
 
-          <p className="text-zinc-400 text-lg">
+            </h1>
 
-            Real-time stock reservation with concurrency-safe inventory handling.
+            <p className="text-zinc-400 text-lg">
 
-          </p>
+              Concurrency-safe inventory reservation platform.
+
+            </p>
+
+          </div>
+
+          <button
+            onClick={handleSimulation}
+            disabled={simulating}
+            className="bg-blue-500 hover:bg-blue-600 transition px-6 py-4 rounded-2xl font-semibold cursor-pointer disabled:bg-zinc-700"
+          >
+
+            {simulating
+              ? "Simulating..."
+              : "Simulate Concurrent Reservations"}
+
+          </button>
 
         </div>
 
-        {/* ACTIVE RESERVATION */}
+        {/* RESERVATION PANEL */}
 
-        {activeReservation && (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-10">
 
-          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-8">
+          {!activeReservation ? (
 
-            <div className="flex items-center justify-between mb-5">
+            <div className="text-center py-8">
 
-              <div>
+              <h2 className="text-2xl font-semibold mb-2">
 
-                <h2 className="text-2xl font-semibold mb-2">
+                No Active Reservation
 
-                  Active Reservation
+              </h2>
 
-                </h2>
+              <p className="text-zinc-400">
 
-                <p className="text-zinc-400 text-sm break-all">
+                Reserve inventory to begin reservation flow.
 
-                  Reservation ID:
-                  {" "}
-                  {activeReservation.id}
-
-                </p>
-
-              </div>
-
-              <span className="bg-yellow-500/20 text-yellow-400 px-4 py-2 rounded-full text-sm font-medium">
-
-                {activeReservation.status}
-
-              </span>
+              </p>
 
             </div>
 
-            <div className="grid md:grid-cols-3 gap-4 mb-5">
+          ) : (
 
-              <div className="bg-zinc-950 rounded-2xl p-4">
+            <>
+              <div className="flex items-center justify-between mb-5">
 
-                <p className="text-zinc-500 text-sm mb-1">
+                <div>
 
-                  Quantity
+                  <h2 className="text-2xl font-semibold mb-2">
 
-                </p>
+                    Active Reservation
 
-                <p className="text-xl font-semibold">
+                  </h2>
 
-                  {activeReservation.quantity}
+                  <p className="text-zinc-400 text-sm break-all">
 
-                </p>
+                    {activeReservation.id}
 
-              </div>
+                  </p>
 
-              <div className="bg-zinc-950 rounded-2xl p-4">
+                </div>
 
-                <p className="text-zinc-500 text-sm mb-1">
-
-                  Status
-
-                </p>
-
-                <p className="text-xl font-semibold">
+                <span className="bg-yellow-500/20 text-yellow-400 px-4 py-2 rounded-full text-sm font-medium">
 
                   {activeReservation.status}
 
-                </p>
+                </span>
 
               </div>
 
-              <div className="bg-zinc-950 rounded-2xl p-4">
+              <div className="grid md:grid-cols-3 gap-4 mb-5">
 
-                <p className="text-zinc-500 text-sm mb-1">
+                <div className="bg-zinc-950 rounded-2xl p-4">
 
-                  Expires In
+                  <p className="text-zinc-500 text-sm mb-1">
 
-                </p>
+                    Quantity
 
-                <p className="text-xl font-semibold text-yellow-400">
+                  </p>
 
-                  {timeLeft}
+                  <p className="text-xl font-semibold">
 
-                </p>
+                    {activeReservation.quantity}
+
+                  </p>
+
+                </div>
+
+                <div className="bg-zinc-950 rounded-2xl p-4">
+
+                  <p className="text-zinc-500 text-sm mb-1">
+
+                    Status
+
+                  </p>
+
+                  <p className="text-xl font-semibold">
+
+                    {activeReservation.status}
+
+                  </p>
+
+                </div>
+
+                <div className="bg-zinc-950 rounded-2xl p-4">
+
+                  <p className="text-zinc-500 text-sm mb-1">
+
+                    Expires In
+
+                  </p>
+
+                  <p className="text-xl font-semibold text-yellow-400">
+
+                    {timeLeft}
+
+                  </p>
+
+                </div>
 
               </div>
 
-            </div>
+              {activeReservation.status ===
+                "PENDING" && (
 
-            {activeReservation.status ===
-              "PENDING" && (
+                <div className="flex gap-4">
 
-              <div className="flex gap-4">
+                  <button
+                    onClick={handleConfirm}
+                    className="flex-1 bg-green-500 hover:bg-green-600 transition py-3 rounded-2xl font-semibold cursor-pointer"
+                  >
 
-                <button
-                  onClick={handleConfirm}
-                  className="flex-1 bg-green-500 hover:bg-green-600 transition py-3 rounded-2xl font-semibold cursor-pointer"
-                >
+                    Confirm Reservation
 
-                  Confirm Reservation
+                  </button>
 
-                </button>
+                  <button
+                    onClick={handleRelease}
+                    className="flex-1 bg-red-500 hover:bg-red-600 transition py-3 rounded-2xl font-semibold cursor-pointer"
+                  >
 
-                <button
-                  onClick={handleRelease}
-                  className="flex-1 bg-red-500 hover:bg-red-600 transition py-3 rounded-2xl font-semibold cursor-pointer"
-                >
+                    Release Reservation
 
-                  Release Reservation
+                  </button>
 
-                </button>
+                </div>
+              )}
+            </>
+          )}
 
-              </div>
-            )}
-
-          </div>
-        )}
+        </div>
 
         {/* PRODUCTS */}
 
@@ -442,7 +564,7 @@ export default function HomePage() {
 
             <div
               key={product.id}
-              className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 hover:border-zinc-700 transition"
+              className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 hover:border-zinc-700 hover:-translate-y-1 transition duration-300"
             >
 
               <div className="mb-5">
@@ -490,8 +612,6 @@ export default function HomePage() {
                         </span>
 
                       </div>
-
-                      {/* STATS */}
 
                       <div className="grid grid-cols-3 gap-3 text-sm mb-4">
 
@@ -551,8 +671,6 @@ export default function HomePage() {
 
                       </div>
 
-                      {/* BUTTON */}
-
                       <button
                         onClick={() =>
                           handleReserve(
@@ -562,14 +680,17 @@ export default function HomePage() {
 
                         disabled={
                           inventory.availableStock <=
-                          0
+                            0 ||
+                          reserving
                         }
 
                         className="w-full bg-white text-black font-semibold py-3 rounded-2xl hover:bg-zinc-300 transition cursor-pointer disabled:bg-zinc-700 disabled:text-zinc-400 disabled:cursor-not-allowed"
                       >
 
-                        {inventory.availableStock >
-                        0
+                        {reserving
+                          ? "Reserving..."
+                          : inventory.availableStock >
+                            0
                           ? "Reserve 1 Unit"
                           : "Out of Stock"}
 
