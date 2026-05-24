@@ -34,7 +34,7 @@ https://github.com/harshu-79/allo-inventory-reservation-system
 ## Deployment
 - Vercel
 
-- ---
+---
 
 # Features
 
@@ -60,7 +60,7 @@ https://github.com/harshu-79/allo-inventory-reservation-system
 - Toast notifications for actions
 - Production deployment with PostgreSQL database
 
-- ---
+---
 
 # System Architecture
 
@@ -72,25 +72,3 @@ API Routes (Next.js Server)
 Prisma ORM
         ↓
 PostgreSQL Database (Supabase)
-
-
-- ---
-
-
-# Reservation Lifecycle
-
-```txt
-PENDING
-   ↓
-CONFIRMED
-   ↓
-COMPLETED
-
- ---
-
-# API Endpoints
-
-## Get Products
-
-```http
-GET /api/products
