@@ -72,3 +72,25 @@ API Routes (Next.js Server)
 Prisma ORM
         ↓
 PostgreSQL Database (Supabase)
+
+
+- ---
+
+
+# Reservation Lifecycle
+
+```txt
+PENDING
+   ↓
+CONFIRMED
+   ↓
+COMPLETED
+
+ ---
+
+# API Endpoints
+
+## Get Products
+
+```http
+GET /api/products
