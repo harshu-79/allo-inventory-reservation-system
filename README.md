@@ -33,3 +33,29 @@ https://github.com/harshu-79/allo-inventory-reservation-system
 
 ## Deployment
 - Vercel
+
+- ---
+
+# Features
+
+## Inventory Management
+- View products and warehouse inventory
+- Real-time available stock updates
+- Reserved stock tracking
+
+## Reservation System
+- Reserve inventory units
+- Reservation expiration timer
+- Confirm reservation
+- Release reservation
+
+## Concurrency-Safe Architecture
+- Prevents overselling inventory
+- Atomic reservation handling using Prisma transactions
+- Handles race conditions during simultaneous reservations
+
+## Real-Time UX
+- Auto-refresh inventory updates
+- Live reservation countdown
+- Toast notifications for actions
+- Production deployment with PostgreSQL database
