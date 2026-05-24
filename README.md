@@ -59,3 +59,16 @@ https://github.com/harshu-79/allo-inventory-reservation-system
 - Live reservation countdown
 - Toast notifications for actions
 - Production deployment with PostgreSQL database
+
+- ---
+
+# System Architecture
+
+```txt
+Frontend (Next.js + React)
+        ↓
+API Routes (Next.js Server)
+        ↓
+Prisma ORM
+        ↓
+PostgreSQL Database (Supabase)
